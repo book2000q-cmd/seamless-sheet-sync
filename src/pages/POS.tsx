@@ -1,0 +1,336 @@
+import { useState, useEffect } from "react";
+import Layout from "@/components/Layout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Scan, Trash2, ShoppingCart } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface CartItem {
+  product_id: string;
+  barcode: string;
+  name: string;
+  price: number;
+  quantity: number;
+  subtotal: number;
+}
+
+export default function POS() {
+  const [barcode, setBarcode] = useState("");
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [scanMode, setScanMode] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (scanMode) {
+      const handleKeyPress = async (e: KeyboardEvent) => {
+        if (e.key === 'Enter' && barcode) {
+          await addToCart();
+        }
+      };
+      
+      window.addEventListener('keypress', handleKeyPress);
+      return () => window.removeEventListener('keypress', handleKeyPress);
+    }
+  }, [scanMode, barcode]);
+
+  const addToCart = async () => {
+    if (!barcode.trim()) return;
+
+    setLoading(true);
+    try {
+      const { data: product, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('barcode', barcode.trim())
+        .single();
+
+      if (error || !product) {
+        toast.error('ไม่พบสินค้าที่มีบาร์โค้ดนี้');
+        return;
+      }
+
+      if (product.stock_quantity <= 0) {
+        toast.error('สินค้าหมด');
+        return;
+      }
+
+      const existingItem = cart.find(item => item.product_id === product.id);
+      
+      if (existingItem) {
+        if (existingItem.quantity >= product.stock_quantity) {
+          toast.error('สินค้าไม่เพียงพอ');
+          return;
+        }
+        
+        setCart(cart.map(item =>
+          item.product_id === product.id
+            ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price }
+            : item
+        ));
+      } else {
+        setCart([...cart, {
+          product_id: product.id,
+          barcode: product.barcode,
+          name: product.name,
+          price: product.price,
+          quantity: 1,
+          subtotal: product.price,
+        }]);
+      }
+
+      toast.success(`เพิ่ม ${product.name} ลงในตะกร้า`);
+      setBarcode("");
+    } catch (error: any) {
+      toast.error('เกิดข้อผิดพลาด');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removeFromCart = (product_id: string) => {
+    setCart(cart.filter(item => item.product_id !== product_id));
+  };
+
+  const updateQuantity = (product_id: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      removeFromCart(product_id);
+      return;
+    }
+
+    setCart(cart.map(item =>
+      item.product_id === product_id
+        ? { ...item, quantity: newQuantity, subtotal: newQuantity * item.price }
+        : item
+    ));
+  };
+
+  const calculateTotal = () => {
+    return cart.reduce((sum, item) => sum + item.subtotal, 0);
+  };
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) {
+      toast.error('ตะกร้าสินค้าว่างเปล่า');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Create sale
+      const { data: sale, error: saleError } = await supabase
+        .from('sales')
+        .insert({
+          total_amount: calculateTotal(),
+          payment_method: 'cash',
+          created_by: user?.id,
+        })
+        .select()
+        .single();
+
+      if (saleError) throw saleError;
+
+      // Create sale items and update stock
+      for (const item of cart) {
+        const { error: itemError } = await supabase
+          .from('sales_items')
+          .insert({
+            sale_id: sale.id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.price,
+            subtotal: item.subtotal,
+          });
+
+        if (itemError) throw itemError;
+
+        // Update product stock
+        const { data: product } = await supabase
+          .from('products')
+          .select('stock_quantity')
+          .eq('id', item.product_id)
+          .single();
+
+        if (product) {
+          await supabase
+            .from('products')
+            .update({ stock_quantity: product.stock_quantity - item.quantity })
+            .eq('id', item.product_id);
+        }
+
+        // Record stock movement
+        await supabase
+          .from('stock_movements')
+          .insert({
+            product_id: item.product_id,
+            movement_type: 'out',
+            quantity: item.quantity,
+            notes: `ขาย - Bill #${sale.id.slice(0, 8)}`,
+            created_by: user?.id,
+          });
+      }
+
+      toast.success('บันทึกการขายสำเร็จ');
+      setCart([]);
+    } catch (error: any) {
+      toast.error('เกิดข้อผิดพลาดในการบันทึกการขาย');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Layout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-primary">จุดขายสินค้า (POS)</h1>
+          <p className="text-muted-foreground">สแกนบาร์โค้ดเพื่อเพิ่มสินค้าในตะกร้า</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Product Scanner */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>สแกนสินค้า</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  value={barcode}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  placeholder={scanMode ? "สแกนบาร์โค้ด..." : "กรอกบาร์โค้ด"}
+                  autoFocus
+                  disabled={loading}
+                />
+                <Button
+                  variant={scanMode ? "secondary" : "outline"}
+                  onClick={() => setScanMode(!scanMode)}
+                >
+                  <Scan className="h-4 w-4" />
+                </Button>
+                <Button onClick={addToCart} disabled={loading || !barcode}>
+                  เพิ่ม
+                </Button>
+              </div>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>สินค้า</TableHead>
+                    <TableHead className="text-right">ราคา</TableHead>
+                    <TableHead className="text-center">จำนวน</TableHead>
+                    <TableHead className="text-right">รวม</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cart.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        ตะกร้าสินค้าว่างเปล่า
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    cart.map((item) => (
+                      <TableRow key={item.product_id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{item.name}</p>
+                            <p className="text-xs text-muted-foreground">{item.barcode}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">฿{item.price.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                            >
+                              -
+                            </Button>
+                            <span className="w-8 text-center">{item.quantity}</span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                            >
+                              +
+                            </Button>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          ฿{item.subtotal.toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeFromCart(item.product_id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Checkout Summary */}
+          <Card className="lg:col-span-1">
+            <CardHeader>
+              <CardTitle>สรุปยอดขาย</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">จำนวนรายการ:</span>
+                  <span className="font-medium">{cart.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">จำนวนสินค้า:</span>
+                  <span className="font-medium">
+                    {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                  </span>
+                </div>
+                <div className="border-t pt-2 mt-2">
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>ยอดรวม:</span>
+                    <span className="text-primary">฿{calculateTotal().toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handleCheckout}
+                disabled={loading || cart.length === 0}
+              >
+                <ShoppingCart className="mr-2 h-5 w-5" />
+                ชำระเงิน
+              </Button>
+
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={() => setCart([])}
+                disabled={cart.length === 0}
+              >
+                ล้างตะกร้า
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </Layout>
+  );
+}
