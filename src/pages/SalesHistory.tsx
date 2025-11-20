@@ -139,7 +139,6 @@ export default function SalesHistory() {
                       ))}
                     </TableBody>
                   </Table>
-                  </div>
                 </CardContent>
               </Card>
             ))}
