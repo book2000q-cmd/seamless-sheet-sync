@@ -69,10 +69,10 @@ export default function SalesHistory() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-primary">ประวัติการขาย</h1>
-          <p className="text-muted-foreground">รายการขายทั้งหมด 50 รายการล่าสุด</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">ประวัติการขาย</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">รายการขายทั้งหมด 50 รายการล่าสุด</p>
         </div>
 
         {sales.length === 0 ? (
@@ -139,6 +139,7 @@ export default function SalesHistory() {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 </CardContent>
               </Card>
             ))}

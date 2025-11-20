@@ -123,13 +123,13 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
-          <p className="text-muted-foreground">ภาพรวมระบบจัดการร้านขายของชำ</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">ภาพรวมระบบจัดการร้านขายของชำ</p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">จำนวนสินค้าทั้งหมด</CardTitle>
@@ -180,25 +180,27 @@ export default function Dashboard() {
             <CardTitle>ยอดขาย 7 วันที่ผ่านมา</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer
-              config={{
-                amount: {
-                  label: "ยอดขาย",
-                  color: "hsl(var(--primary))",
-                },
-              }}
-              className="h-[300px]"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={salesData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            <div className="w-full overflow-x-auto">
+              <ChartContainer
+                config={{
+                  amount: {
+                    label: "ยอดขาย",
+                    color: "hsl(var(--primary))",
+                  },
+                }}
+                className="h-[250px] sm:h-[300px] w-full"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={salesData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </div>
           </CardContent>
         </Card>
       </div>

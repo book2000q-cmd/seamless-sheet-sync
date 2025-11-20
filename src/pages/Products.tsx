@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Scan } from "lucide-react";
+import { Plus, Pencil, Trash2, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import BarcodeScanner from "@/components/BarcodeScanner";
 
 interface Product {
   id: string;
@@ -26,7 +27,7 @@ export default function Products() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [scanMode, setScanMode] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   
   const [formData, setFormData] = useState({
     barcode: "",
@@ -53,18 +54,9 @@ export default function Products() {
     };
   }, []);
 
-  useEffect(() => {
-    if (scanMode) {
-      const handleKeyPress = (e: KeyboardEvent) => {
-        if (e.key === 'Enter' && formData.barcode) {
-          setScanMode(false);
-        }
-      };
-      
-      window.addEventListener('keypress', handleKeyPress);
-      return () => window.removeEventListener('keypress', handleKeyPress);
-    }
-  }, [scanMode, formData.barcode]);
+  const handleScan = (scannedBarcode: string) => {
+    setFormData({ ...formData, barcode: scannedBarcode });
+  };
 
   const fetchProducts = async () => {
     try {
@@ -171,11 +163,17 @@ export default function Products() {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <BarcodeScanner 
+        isOpen={showScanner} 
+        onClose={() => setShowScanner(false)}
+        onScan={handleScan}
+      />
+      
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-primary">จัดการสินค้า</h1>
-            <p className="text-muted-foreground">เพิ่ม แก้ไข และลบสินค้าในระบบ</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-primary">จัดการสินค้า</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">เพิ่ม แก้ไข และลบสินค้าในระบบ</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={(open) => {
             setDialogOpen(open);
@@ -202,16 +200,16 @@ export default function Products() {
                       id="barcode"
                       value={formData.barcode}
                       onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                      placeholder={scanMode ? "สแกนบาร์โค้ด..." : "กรอกหรือสแกนบาร์โค้ด"}
+                      placeholder="กรอกหรือสแกนบาร์โค้ด"
                       required
-                      autoFocus={scanMode}
                     />
                     <Button
                       type="button"
-                      variant={scanMode ? "secondary" : "outline"}
-                      onClick={() => setScanMode(!scanMode)}
+                      variant="outline"
+                      onClick={() => setShowScanner(true)}
+                      title="สแกนด้วยกล้อง"
                     >
-                      <Scan className="h-4 w-4" />
+                      <Camera className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -295,7 +293,8 @@ export default function Products() {
             {loading ? (
               <div className="text-center py-8">กำลังโหลด...</div>
             ) : (
-              <Table>
+              <div className="overflow-x-auto">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>บาร์โค้ด</TableHead>
@@ -342,6 +341,7 @@ export default function Products() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>
