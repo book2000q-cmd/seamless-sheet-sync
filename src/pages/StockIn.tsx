@@ -5,23 +5,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Scan } from "lucide-react";
+import { Camera, Keyboard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import BarcodeScanner from "@/components/BarcodeScanner";
 
 export default function StockIn() {
   const [barcode, setBarcode] = useState("");
   const [quantity, setQuantity] = useState("");
   const [notes, setNotes] = useState("");
-  const [scanMode, setScanMode] = useState(true);
+  const [scanMode, setScanMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [productInfo, setProductInfo] = useState<any>(null);
+  const [showScanner, setShowScanner] = useState(false);
 
   useEffect(() => {
-    if (barcode && scanMode) {
+    if (barcode) {
       findProduct();
     }
   }, [barcode]);
+
+  const handleScan = (scannedBarcode: string) => {
+    setBarcode(scannedBarcode);
+  };
 
   const findProduct = async () => {
     try {
@@ -97,13 +103,19 @@ export default function StockIn() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <BarcodeScanner 
+        isOpen={showScanner} 
+        onClose={() => setShowScanner(false)}
+        onScan={handleScan}
+      />
+      
+      <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-primary">รับสินค้าเข้า</h1>
-          <p className="text-muted-foreground">สแกนบาร์โค้ดเพื่อเพิ่มสต็อกสินค้า</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">รับสินค้าเข้า</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">สแกนบาร์โค้ดเพื่อเพิ่มสต็อกสินค้า</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <Card>
             <CardHeader>
               <CardTitle>สแกนสินค้า</CardTitle>
@@ -117,16 +129,16 @@ export default function StockIn() {
                       id="barcode"
                       value={barcode}
                       onChange={(e) => setBarcode(e.target.value)}
-                      placeholder={scanMode ? "สแกนบาร์โค้ด..." : "กรอกบาร์โค้ด"}
-                      autoFocus
+                      placeholder="กรอกบาร์โค้ดหรือสแกนด้วยกล้อง"
                       required
                     />
                     <Button
                       type="button"
-                      variant={scanMode ? "secondary" : "outline"}
-                      onClick={() => setScanMode(!scanMode)}
+                      variant="outline"
+                      onClick={() => setShowScanner(true)}
+                      title="สแกนด้วยกล้อง"
                     >
-                      <Scan className="h-4 w-4" />
+                      <Camera className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>

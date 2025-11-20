@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Scan, Trash2, ShoppingCart } from "lucide-react";
+import { Camera, Trash2, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import BarcodeScanner from "@/components/BarcodeScanner";
 
 interface CartItem {
   product_id: string;
@@ -20,31 +21,23 @@ interface CartItem {
 export default function POS() {
   const [barcode, setBarcode] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [scanMode, setScanMode] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
-  useEffect(() => {
-    if (scanMode) {
-      const handleKeyPress = async (e: KeyboardEvent) => {
-        if (e.key === 'Enter' && barcode) {
-          await addToCart();
-        }
-      };
-      
-      window.addEventListener('keypress', handleKeyPress);
-      return () => window.removeEventListener('keypress', handleKeyPress);
-    }
-  }, [scanMode, barcode]);
+  const handleScan = (scannedBarcode: string) => {
+    setBarcode(scannedBarcode);
+    addToCartWithBarcode(scannedBarcode);
+  };
 
-  const addToCart = async () => {
-    if (!barcode.trim()) return;
+  const addToCartWithBarcode = async (barcodeValue: string) => {
+    if (!barcodeValue.trim()) return;
 
     setLoading(true);
     try {
       const { data: product, error } = await supabase
         .from('products')
         .select('*')
-        .eq('barcode', barcode.trim())
+        .eq('barcode', barcodeValue.trim())
         .single();
 
       if (error || !product) {
@@ -184,15 +177,25 @@ export default function POS() {
     }
   };
 
+  const addToCart = () => {
+    addToCartWithBarcode(barcode);
+  };
+
   return (
     <Layout>
-      <div className="space-y-6">
+      <BarcodeScanner 
+        isOpen={showScanner} 
+        onClose={() => setShowScanner(false)}
+        onScan={handleScan}
+      />
+      
+      <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-primary">จุดขายสินค้า (POS)</h1>
-          <p className="text-muted-foreground">สแกนบาร์โค้ดเพื่อเพิ่มสินค้าในตะกร้า</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">จุดขายสินค้า (POS)</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">สแกนบาร์โค้ดเพื่อเพิ่มสินค้าในตะกร้า</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Product Scanner */}
           <Card className="lg:col-span-2">
             <CardHeader>
@@ -203,32 +206,38 @@ export default function POS() {
                 <Input
                   value={barcode}
                   onChange={(e) => setBarcode(e.target.value)}
-                  placeholder={scanMode ? "สแกนบาร์โค้ด..." : "กรอกบาร์โค้ด"}
-                  autoFocus
+                  placeholder="กรอกบาร์โค้ดหรือสแกนด้วยกล้อง"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && barcode) {
+                      addToCart();
+                    }
+                  }}
                   disabled={loading}
                 />
                 <Button
-                  variant={scanMode ? "secondary" : "outline"}
-                  onClick={() => setScanMode(!scanMode)}
+                  variant="outline"
+                  onClick={() => setShowScanner(true)}
+                  title="สแกนด้วยกล้อง"
                 >
-                  <Scan className="h-4 w-4" />
+                  <Camera className="h-4 w-4" />
                 </Button>
                 <Button onClick={addToCart} disabled={loading || !barcode}>
                   เพิ่ม
                 </Button>
               </div>
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>สินค้า</TableHead>
-                    <TableHead className="text-right">ราคา</TableHead>
-                    <TableHead className="text-center">จำนวน</TableHead>
-                    <TableHead className="text-right">รวม</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>สินค้า</TableHead>
+                      <TableHead className="text-right">ราคา</TableHead>
+                      <TableHead className="text-center">จำนวน</TableHead>
+                      <TableHead className="text-right">รวม</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                   {cart.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground">
@@ -281,6 +290,7 @@ export default function POS() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
 
