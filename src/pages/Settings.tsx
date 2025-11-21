@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Settings() {
   const [webhookUrl, setWebhookUrl] = useState("https://project221.app.n8n.cloud/webhook-test/project");
@@ -25,31 +26,80 @@ export default function Settings() {
         headers: {
           'Content-Type': 'application/json',
         },
-        mode: 'no-cors',
         body: JSON.stringify({
           timestamp: new Date().toISOString(),
           sync_type: 'manual',
           source: 'pos_system',
+          message: 'Test connection from POS system'
         }),
       });
 
-      toast.success('ส่งข้อมูลไปยัง Webhook สำเร็จ! กรุณาตรวจสอบใน n8n workflow');
+      console.log('Webhook response status:', response.status);
+      
+      if (response.ok) {
+        const responseData = await response.text();
+        console.log('Webhook response:', responseData);
+        toast.success('ส่งข้อมูลไปยัง Webhook สำเร็จ!');
+      } else {
+        console.error('Webhook error status:', response.status);
+        toast.error(`เกิดข้อผิดพลาด: ${response.status} ${response.statusText}`);
+      }
     } catch (error) {
       console.error('Webhook error:', error);
-      toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อ Webhook');
+      toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อ Webhook - ตรวจสอบ Console');
     } finally {
       setSyncing(false);
     }
   };
 
   const handleSyncAllData = async () => {
+    if (!webhookUrl.trim()) {
+      toast.error('กรุณากรอก Webhook URL');
+      return;
+    }
+
     setSyncing(true);
     try {
-      // In a real implementation, this would fetch all data and send to webhook
-      await handleSync();
-      toast.success('เริ่มต้นการ Sync ข้อมูลทั้งหมดแล้ว');
+      // Fetch all data from Supabase
+      const [productsRes, salesRes] = await Promise.all([
+        supabase.from('products').select('*'),
+        supabase.from('sales').select('*, items:sales_items(*, products(*))')
+      ]);
+
+      const syncData = {
+        timestamp: new Date().toISOString(),
+        sync_type: 'full',
+        source: 'pos_system',
+        data: {
+          products: productsRes.data || [],
+          sales: salesRes.data || [],
+          total_products: productsRes.data?.length || 0,
+          total_sales: salesRes.data?.length || 0
+        }
+      };
+
+      console.log('Syncing data:', syncData);
+
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(syncData),
+      });
+
+      console.log('Sync response status:', response.status);
+
+      if (response.ok) {
+        const responseData = await response.text();
+        console.log('Sync response:', responseData);
+        toast.success(`ส่งข้อมูลทั้งหมดสำเร็จ! (${syncData.data.total_products} สินค้า, ${syncData.data.total_sales} ยอดขาย)`);
+      } else {
+        toast.error(`เกิดข้อผิดพลาด: ${response.status}`);
+      }
     } catch (error) {
-      toast.error('เกิดข้อผิดพลาด');
+      console.error('Sync error:', error);
+      toast.error('เกิดข้อผิดพลาดในการ Sync - ตรวจสอบ Console');
     } finally {
       setSyncing(false);
     }

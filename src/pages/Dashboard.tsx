@@ -49,11 +49,12 @@ export default function Dashboard() {
         .from('products')
         .select('*', { count: 'exact', head: true });
 
-      // Get low stock products
-      const { data: lowStock } = await supabase
+      // Get low stock products (filter in JS since we can't compare columns in Postgrest)
+      const { data: allProducts } = await supabase
         .from('products')
-        .select('id, stock_quantity, min_stock_level')
-        .filter('stock_quantity', 'lte', 'min_stock_level');
+        .select('id, stock_quantity, min_stock_level');
+      
+      const lowStock = allProducts?.filter(p => p.stock_quantity <= p.min_stock_level) || [];
 
       // Get today's sales
       const today = new Date().toISOString().split('T')[0];
