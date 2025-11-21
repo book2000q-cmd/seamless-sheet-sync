@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Button } from "@/components/ui/button";
 import { Camera, X } from "lucide-react";
 import { toast } from "sonner";
@@ -30,12 +30,21 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
       const html5QrCode = new Html5Qrcode("barcode-scanner");
       scannerRef.current = html5QrCode;
 
+      const config: any = {
+        fps: 10,
+        qrbox: { width: 250, height: 150 },
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+        ],
+      };
+
       await html5QrCode.start(
         { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 150 },
-        },
+        config,
+
         (decodedText) => {
           console.log("Barcode scanned:", decodedText);
           toast.success(`สแกนบาร์โค้ดสำเร็จ: ${decodedText}`);
