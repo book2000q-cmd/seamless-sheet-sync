@@ -26,6 +26,7 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
 
   const startScanning = async () => {
     try {
+      console.log("Starting barcode scanner...");
       const html5QrCode = new Html5Qrcode("barcode-scanner");
       scannerRef.current = html5QrCode;
 
@@ -36,20 +37,28 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
           qrbox: { width: 250, height: 150 },
         },
         (decodedText) => {
+          console.log("Barcode scanned:", decodedText);
+          toast.success(`สแกนบาร์โค้ดสำเร็จ: ${decodedText}`);
           onScan(decodedText);
           stopScanning();
           onClose();
-          toast.success("สแกนบาร์โค้ดสำเร็จ");
         },
         (errorMessage) => {
-          // Ignore scanning errors
+          // Ignore frequent scanning errors (this fires rapidly)
         }
       );
 
       setIsScanning(true);
+      console.log("Scanner started successfully");
     } catch (error: any) {
       console.error("Error starting scanner:", error);
-      toast.error("ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตการใช้กล้อง");
+      if (error.name === 'NotAllowedError') {
+        toast.error("กรุณาอนุญาตการใช้กล้องในเบราว์เซอร์");
+      } else if (error.name === 'NotFoundError') {
+        toast.error("ไม่พบกล้อง กรุณาตรวจสอบอุปกรณ์");
+      } else {
+        toast.error("ไม่สามารถเปิดกล้องได้: " + error.message);
+      }
       onClose();
     }
   };
