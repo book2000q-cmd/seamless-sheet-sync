@@ -32,19 +32,24 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
 
       const config: any = {
         fps: 10,
-        qrbox: { width: 250, height: 150 },
+        qrbox: { width: 300, height: 200 },
         formatsToSupport: [
           Html5QrcodeSupportedFormats.EAN_13,
           Html5QrcodeSupportedFormats.CODE_128,
           Html5QrcodeSupportedFormats.UPC_A,
           Html5QrcodeSupportedFormats.UPC_E,
         ],
+        experimentalFeatures: {
+          // ใช้ BarcodeDetector ของเบราว์เซอร์ (เช่น iOS 17+) ถ้ามี จะช่วยให้สแกนบาร์โค้ด 1 มิติได้ดีขึ้นมาก
+          useBarCodeDetectorIfSupported: true,
+        },
       };
+
+      console.log("html5-qrcode config", config);
 
       await html5QrCode.start(
         { facingMode: "environment" },
         config,
-
         (decodedText) => {
           console.log("Barcode scanned:", decodedText);
           toast.success(`สแกนบาร์โค้ดสำเร็จ: ${decodedText}`);
