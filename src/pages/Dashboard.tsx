@@ -126,8 +126,8 @@ export default function Dashboard() {
     <Layout>
       <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">ระบบจัดการร้านขายของชำ</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">ระบบจัดการร้านขายของชำ</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">ระบบบริหารจัดการร้านขายของชำ</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">วิทยาลัยเทคนิควังน้ำเย็น</p>
         </div>
 
         <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
