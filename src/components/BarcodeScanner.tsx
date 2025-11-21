@@ -51,9 +51,36 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
         { facingMode: "environment" },
         config,
         (decodedText) => {
-          console.log("Barcode scanned:", decodedText);
-          toast.success(`สแกนบาร์โค้ดสำเร็จ: ${decodedText}`);
-          onScan(decodedText);
+          const text = decodedText.trim();
+          console.log("Barcode scanned:", text);
+
+          // เสียงติ้งเมื่อสแกนสำเร็จ
+          try {
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            if (AudioContextClass) {
+              const audioCtx = new AudioContextClass();
+              const oscillator = audioCtx.createOscillator();
+              const gainNode = audioCtx.createGain();
+
+              oscillator.type = "sine";
+              oscillator.frequency.value = 880; // เสียงสูงเล็กน้อย
+              gainNode.gain.value = 0.1; // เบาๆ ไม่ดังเกินไป
+
+              oscillator.connect(gainNode);
+              gainNode.connect(audioCtx.destination);
+
+              oscillator.start();
+              setTimeout(() => {
+                oscillator.stop();
+                audioCtx.close();
+              }, 150);
+            }
+          } catch (soundError) {
+            console.warn("Play beep failed", soundError);
+          }
+
+          toast.success(`สแกนบาร์โค้ดสำเร็จ: ${text}`);
+          onScan(text);
           stopScanning();
           onClose();
         },
@@ -93,7 +120,7 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
       <div className="bg-background rounded-lg shadow-xl max-w-2xl w-full overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
