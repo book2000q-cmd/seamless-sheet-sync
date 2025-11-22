@@ -75,7 +75,7 @@ export default function IncomeExpense() {
       .channel("income_expense_changes")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "transactions" },
+        { event: "*", schema: "public", table: "transactions" } as any,
         () => {
           fetchTransactions();
         }
@@ -90,13 +90,13 @@ export default function IncomeExpense() {
   const fetchTransactions = async () => {
     try {
       const { data, error } = await supabase
-        .from("transactions")
+        .from("transactions" as any)
         .select("*")
         .order("date", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setTransactions((data || []) as Transaction[]);
+      setTransactions((data || []) as unknown as Transaction[]);
     } catch (error: any) {
       toast.error("เกิดข้อผิดพลาดในการโหลดข้อมูล");
     } finally {
@@ -113,13 +113,13 @@ export default function IncomeExpense() {
     }
 
     try {
-      const { error } = await supabase.from("transactions").insert({
+      const { error } = await supabase.from("transactions" as any).insert({
         type: formData.type,
         amount: parseFloat(formData.amount),
         category: formData.category,
         description: formData.description,
         date: formData.date,
-      });
+      } as any);
 
       if (error) throw error;
 
@@ -135,7 +135,7 @@ export default function IncomeExpense() {
     if (!confirm("ต้องการลบรายการนี้?")) return;
 
     try {
-      const { error } = await supabase.from("transactions").delete().eq("id", id);
+      const { error } = await supabase.from("transactions" as any).delete().eq("id", id);
 
       if (error) throw error;
       toast.success("ลบรายการสำเร็จ");
