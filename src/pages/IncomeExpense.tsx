@@ -96,7 +96,7 @@ export default function IncomeExpense() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setTransactions(data || []);
+      setTransactions((data || []) as Transaction[]);
     } catch (error: any) {
       toast.error("เกิดข้อผิดพลาดในการโหลดข้อมูล");
     } finally {
@@ -174,7 +174,7 @@ export default function IncomeExpense() {
 
   if (loading) {
     return (
-      <Layout title="รายรับ-รายจ่าย" description="จัดการรายรับและรายจ่ายของร้าน">
+      <Layout>
         <div className="flex items-center justify-center h-64">
           <p className="text-muted-foreground">กำลังโหลด...</p>
         </div>
@@ -183,7 +183,11 @@ export default function IncomeExpense() {
   }
 
   return (
-    <Layout title="รายรับ-รายจ่าย" description="จัดการรายรับและรายจ่ายของร้าน">
+    <Layout>
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-primary">รายรับ-รายจ่าย</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">จัดการรายรับและรายจ่ายของร้าน</p>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -403,6 +407,6 @@ export default function IncomeExpense() {
           )}
         </CardContent>
       </Card>
-    </Layout>
+      </Layout>
   );
 }

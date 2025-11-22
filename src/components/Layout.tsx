@@ -41,7 +41,7 @@ export default function Layout({ children }: LayoutProps) {
     { path: "/dashboard", icon: LayoutDashboard, label: "หน้าหลัก" },
     { path: "/products", icon: Package, label: "จัดการสินค้า" },
     { path: "/pos", icon: ShoppingCart, label: "ขายสินค้า" },
-    { path: "/stock-in", icon: PackagePlus, label: "รับสินค้าเข้า" },
+    { path: "/income-expense", icon: PackagePlus, label: "รายรับ-รายจ่าย" },
     { path: "/sales-history", icon: History, label: "ประวัติการขาย" },
     { path: "/settings", icon: Settings, label: "ตั้งค่า" },
   ];
