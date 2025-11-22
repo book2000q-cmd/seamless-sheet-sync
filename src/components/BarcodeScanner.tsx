@@ -12,11 +12,17 @@ interface BarcodeScannerProps {
 
 export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const hasScannedRef = useRef(false);
   const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
-    if (isOpen && !isScanning) {
-      startScanning();
+    if (isOpen) {
+      // รีเซ็ตสถานะทุกครั้งที่เปิดหน้าสแกนใหม่
+      hasScannedRef.current = false;
+
+      if (!isScanning) {
+        startScanning();
+      }
     }
 
     return () => {
@@ -31,8 +37,9 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
       scannerRef.current = html5QrCode;
 
       const config: any = {
-        fps: 10,
-        qrbox: { width: 300, height: 200 },
+        fps: 30,
+        aspectRatio: 1.7777778, // ช่วยให้สแกนบาร์โค้ดแนวนอนได้ดีขึ้น
+        disableFlip: true, // ไม่กลับภาพกระจก เพื่อให้สแกนเสถียรขึ้น
         formatsToSupport: [
           Html5QrcodeSupportedFormats.EAN_13,
           Html5QrcodeSupportedFormats.CODE_128,
@@ -43,6 +50,7 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
           // ใช้ BarcodeDetector ของเบราว์เซอร์ (เช่น iOS 17+) ถ้ามี จะช่วยให้สแกนบาร์โค้ด 1 มิติได้ดีขึ้นมาก
           useBarCodeDetectorIfSupported: true,
         },
+        rememberLastUsedCamera: true,
       };
 
       console.log("html5-qrcode config", config);
@@ -52,6 +60,14 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
         config,
         (decodedText) => {
           const text = decodedText.trim();
+
+          // ป้องกันสแกนซ้ำรัว ๆ ในครั้งเดียว
+          if (hasScannedRef.current) {
+            console.log("Scan ignored, already processed");
+            return;
+          }
+          hasScannedRef.current = true;
+
           console.log("Barcode scanned:", text);
 
           // เสียงติ้งเมื่อสแกนสำเร็จ
