@@ -13,6 +13,12 @@ interface DashboardStats {
   todayRevenue: number;
 }
 
+interface BestSeller {
+  product_name: string;
+  total_quantity: number;
+  total_revenue: number;
+}
+
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalProducts: 0,
@@ -21,6 +27,7 @@ export default function Dashboard() {
     todayRevenue: 0,
   });
   const [salesData, setChartData] = useState<any[]>([]);
+  const [bestSellers, setBestSellers] = useState<BestSeller[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -80,6 +87,33 @@ export default function Dashboard() {
 
       const chartData = processChartData(weekSales || []);
 
+      // Get best sellers (top 5 products by quantity sold in last 7 days)
+      const { data: bestSellersData } = await supabase
+        .from('sales_items')
+        .select('quantity, product_id, products(name)')
+        .gte('created_at', sevenDaysAgo.toISOString());
+
+      const productSales: { [key: string]: { name: string; quantity: number; revenue: number } } = {};
+      
+      if (bestSellersData) {
+        for (const item of bestSellersData) {
+          const productName = (item.products as any)?.name || 'Unknown';
+          if (!productSales[productName]) {
+            productSales[productName] = { name: productName, quantity: 0, revenue: 0 };
+          }
+          productSales[productName].quantity += item.quantity;
+        }
+      }
+
+      const topSellers = Object.values(productSales)
+        .sort((a, b) => b.quantity - a.quantity)
+        .slice(0, 5)
+        .map(p => ({
+          product_name: p.name,
+          total_quantity: p.quantity,
+          total_revenue: 0,
+        }));
+
       setStats({
         totalProducts: totalProducts || 0,
         lowStockProducts: lowStock?.length || 0,
@@ -88,6 +122,7 @@ export default function Dashboard() {
       });
 
       setChartData(chartData);
+      setBestSellers(topSellers);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -176,34 +211,65 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>ยอดขาย 7 วันที่ผ่านมา</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="w-full overflow-x-auto">
-              <ChartContainer
-                config={{
-                  amount: {
-                    label: "ยอดขาย",
-                    color: "hsl(var(--primary))",
-                  },
-                }}
-                className="h-[250px] sm:h-[300px] w-full"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={salesData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>ยอดขาย 7 วันที่ผ่านมา</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="w-full overflow-x-auto">
+                <ChartContainer
+                  config={{
+                    amount: {
+                      label: "ยอดขาย",
+                      color: "hsl(var(--primary))",
+                    },
+                  }}
+                  className="h-[250px] sm:h-[300px] w-full"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={salesData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>สินค้าขายดี (7 วันที่ผ่านมา)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {bestSellers.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">ยังไม่มีข้อมูล</p>
+              ) : (
+                <div className="space-y-4">
+                  {bestSellers.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <p className="font-medium">{item.product_name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            ขายไป {item.total_quantity} ชิ้น
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </Layout>
   );
