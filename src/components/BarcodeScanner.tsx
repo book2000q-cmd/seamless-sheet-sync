@@ -38,19 +38,27 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
 
       const config: any = {
         fps: 30,
-        aspectRatio: 1.7777778, // ช่วยให้สแกนบาร์โค้ดแนวนอนได้ดีขึ้น
-        disableFlip: true, // ไม่กลับภาพกระจก เพื่อให้สแกนเสถียรขึ้น
+        qrbox: { width: 280, height: 180 }, // กรอบสแกนที่ชัดเจน ช่วยให้สแกนบาร์โค้ดได้ดีขึ้น
+        aspectRatio: 1.7777778,
+        disableFlip: true,
         formatsToSupport: [
           Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
           Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.CODE_93,
           Html5QrcodeSupportedFormats.UPC_A,
           Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.ITF,
         ],
         experimentalFeatures: {
-          // ใช้ BarcodeDetector ของเบราว์เซอร์ (เช่น iOS 17+) ถ้ามี จะช่วยให้สแกนบาร์โค้ด 1 มิติได้ดีขึ้นมาก
           useBarCodeDetectorIfSupported: true,
         },
         rememberLastUsedCamera: true,
+        videoConstraints: {
+          facingMode: "environment",
+          advanced: [{ focusMode: "continuous" }], // Auto-focus ต่อเนื่อง
+        },
       };
 
       console.log("html5-qrcode config", config);
