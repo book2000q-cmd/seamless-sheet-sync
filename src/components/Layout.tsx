@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import collegeLogo from "@/assets/college-logo.webp";
-import itLogo from "@/assets/it-logo.jpg";
+import collegeLogo from "@/assets/college-logo-new.png";
+import itLogo from "@/assets/it-logo-new.png";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 interface LayoutProps {
