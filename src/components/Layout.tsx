@@ -50,7 +50,7 @@ export default function Layout({ children }: LayoutProps) {
     <>
       <div className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3 mb-4">
-          <img src={collegeLogo} alt="College" className="h-12 w-12 object-contain" />
+          <img src={collegeLogo} alt="College" className="h-14 w-14 object-contain" />
           <img src={itLogo} alt="IT Department" className="h-12 w-12 object-contain" />
         </div>
         <h2 className="text-base sm:text-lg font-semibold">ระบบจัดการร้านขายของชำ</h2>
@@ -89,7 +89,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Mobile Header */}
       <div className="lg:hidden flex items-center justify-between p-4 border-b bg-sidebar text-sidebar-foreground">
         <div className="flex items-center gap-2">
-          <img src={collegeLogo} alt="College" className="h-8 w-8 object-contain" />
+          <img src={collegeLogo} alt="College" className="h-9 w-9 object-contain" />
           <img src={itLogo} alt="IT Department" className="h-8 w-8 object-contain" />
           <h2 className="text-sm font-semibold">ระบบจัดการร้านขายของชำ</h2>
         </div>
