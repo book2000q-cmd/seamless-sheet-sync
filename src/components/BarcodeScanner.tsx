@@ -19,20 +19,40 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
     if (isOpen) {
       // รีเซ็ตสถานะทุกครั้งที่เปิดหน้าสแกนใหม่
       hasScannedRef.current = false;
+      // เพิ่ม delay เล็กน้อยเพื่อให้ DOM พร้อม
+      const timer = setTimeout(() => {
+        if (!isScanning) {
+          startScanning();
+        }
+      }, 100);
 
-      if (!isScanning) {
-        startScanning();
-      }
-    }
-
-    return () => {
+      return () => {
+        clearTimeout(timer);
+        stopScanning();
+      };
+    } else {
+      // ปิดและล้างทุกอย่างเมื่อปิด dialog
       stopScanning();
-    };
-  }, [isOpen]);
+    }
+  }, [isOpen, isScanning]);
 
   const startScanning = async () => {
+    // ถ้ากำลังสแกนอยู่แล้ว ให้หยุดก่อน
+    if (scannerRef.current || isScanning) {
+      await stopScanning();
+    }
+
     try {
       console.log("Starting barcode scanner...");
+      
+      // ตรวจสอบว่า element พร้อมหรือยัง
+      const element = document.getElementById("barcode-scanner");
+      if (!element) {
+        console.error("Scanner element not found");
+        toast.error("ไม่พบ element สำหรับแสดงกล้อง");
+        return;
+      }
+
       const html5QrCode = new Html5Qrcode("barcode-scanner");
       scannerRef.current = html5QrCode;
 
@@ -129,14 +149,20 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
   };
 
   const stopScanning = async () => {
-    if (scannerRef.current && isScanning) {
+    if (scannerRef.current) {
       try {
-        await scannerRef.current.stop();
+        if (isScanning) {
+          await scannerRef.current.stop();
+        }
         scannerRef.current.clear();
         scannerRef.current = null;
         setIsScanning(false);
+        console.log("Scanner stopped successfully");
       } catch (error) {
         console.error("Error stopping scanner:", error);
+        // ถ้า error ให้ reset state อยู่ดี
+        scannerRef.current = null;
+        setIsScanning(false);
       }
     }
   };
