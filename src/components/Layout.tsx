@@ -28,13 +28,10 @@ export default function Layout({ children }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error("เกิดข้อผิดพลาดในการออกจากระบบ");
-    } else {
-      toast.success("ออกจากระบบสำเร็จ");
-      navigate("/auth");
-    }
+    // ล้าง session ในฝั่ง local เสมอไม่ว่าจะมี error หรือไม่
+    await supabase.auth.signOut({ scope: 'local' });
+    toast.success("ออกจากระบบสำเร็จ");
+    navigate("/auth");
   };
 
   const navItems = [
