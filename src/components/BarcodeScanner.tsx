@@ -19,22 +19,21 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
     if (isOpen) {
       // รีเซ็ตสถานะทุกครั้งที่เปิดหน้าสแกนใหม่
       hasScannedRef.current = false;
-      // เพิ่ม delay เล็กน้อยเพื่อให้ DOM พร้อม
+      // เพิ่ม delay เล็กน้อยเพื่อให้ DOM พร้อม และป้องกัน loop เปิด/ปิดกล้อง
       const timer = setTimeout(() => {
-        if (!isScanning) {
+        if (!scannerRef.current) {
           startScanning();
         }
-      }, 100);
+      }, 200);
 
       return () => {
         clearTimeout(timer);
-        stopScanning();
       };
-    } else {
-      // ปิดและล้างทุกอย่างเมื่อปิด dialog
-      stopScanning();
     }
-  }, [isOpen, isScanning]);
+
+    // เมื่อ dialog ถูกปิด ให้หยุดสแกนและเคลียร์กล้อง
+    stopScanning();
+  }, [isOpen]);
 
   const startScanning = async () => {
     // ถ้ากำลังสแกนอยู่แล้ว ให้หยุดก่อน
