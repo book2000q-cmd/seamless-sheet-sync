@@ -78,6 +78,8 @@ export default function Products() {
     e.preventDefault();
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
       if (editingProduct) {
         const { error } = await supabase
           .from('products')
@@ -95,7 +97,7 @@ export default function Products() {
         if (error) throw error;
         toast.success('แก้ไขสินค้าสำเร็จ');
       } else {
-        const { error } = await supabase
+        const { error: productError } = await supabase
           .from('products')
           .insert({
             barcode: formData.barcode,
@@ -107,8 +109,21 @@ export default function Products() {
             category: formData.category,
           });
 
-        if (error) throw error;
-        toast.success('เพิ่มสินค้าสำเร็จ');
+        if (productError) throw productError;
+
+        // บันทึกรายจ่ายอัตโนมัติเมื่อเพิ่มสินค้าใหม่
+        const totalCost = parseFloat(formData.price) * parseInt(formData.stock_quantity);
+        await supabase
+          .from('transactions')
+          .insert({
+            type: 'expense',
+            category: 'สินค้า',
+            amount: totalCost,
+            date: new Date().toISOString().split('T')[0],
+            description: `นำเข้าสินค้า: ${formData.name} (${formData.stock_quantity} ชิ้น)`,
+          });
+
+        toast.success('เพิ่มสินค้าและบันทึกรายจ่ายสำเร็จ');
       }
 
       resetForm();
