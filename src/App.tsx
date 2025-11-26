@@ -7,7 +7,6 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import POS from "./pages/POS";
-import IncomeExpense from "./pages/IncomeExpense";
 import SalesHistory from "./pages/SalesHistory";
 import Settings from "./pages/Settings";
 import LogoEditor from "./pages/LogoEditor";
@@ -27,7 +26,6 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/products" element={<Products />} />
           <Route path="/pos" element={<POS />} />
-          <Route path="/income-expense" element={<IncomeExpense />} />
           <Route path="/sales-history" element={<SalesHistory />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/logo-editor" element={<LogoEditor />} />

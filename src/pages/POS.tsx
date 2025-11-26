@@ -155,7 +155,7 @@ export default function POS() {
             .eq('id', item.product_id);
         }
 
-        // Record stock movement
+      // Record stock movement
         await supabase
           .from('stock_movements')
           .insert({
@@ -167,7 +167,18 @@ export default function POS() {
           });
       }
 
-      toast.success('บันทึกการขายสำเร็จ');
+      // บันทึกรายรับอัตโนมัติเมื่อขายสำเร็จ
+      await supabase
+        .from('transactions')
+        .insert({
+          type: 'income',
+          category: 'ขายสินค้า',
+          amount: calculateTotal(),
+          date: new Date().toISOString().split('T')[0],
+          description: `ขายสินค้า Bill #${sale.id.slice(0, 8)}`,
+        });
+
+      toast.success('บันทึกการขายและรายรับสำเร็จ');
       setCart([]);
     } catch (error: any) {
       toast.error('เกิดข้อผิดพลาดในการบันทึกการขาย');
