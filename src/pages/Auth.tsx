@@ -94,7 +94,7 @@ export default function Auth() {
           <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">เข้าสู่ระบบ</TabsTrigger>
-              <TabsTrigger value="signup">ลงทะเบียน</TabsTrigger>
+              <TabsTrigger value="signup">สมัครสมาชิก</TabsTrigger>
             </TabsList>
 
             <TabsContent value="signin">
