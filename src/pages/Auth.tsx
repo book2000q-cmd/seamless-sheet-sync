@@ -50,7 +50,7 @@ export default function Auth() {
 
       if (error) throw error;
 
-      toast.success("ลงทะเบียนสำเร็จ! กำลังเข้าสู่ระบบ...");
+      toast.success("สมัครสมาชิกสำเร็จ! กำลังเข้าสู่ระบบ...");
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -164,7 +164,7 @@ export default function Auth() {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "กำลังลงทะเบียน..." : "ลงทะเบียน"}
+                  {loading ? "กำลังสมัครสมาชิก..." : "สมัครสมาชิก"}
                 </Button>
               </form>
             </TabsContent>
