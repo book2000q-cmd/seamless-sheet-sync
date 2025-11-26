@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import collegeLogo from "@/assets/college-logo.webp";
+import itLogo from "@/assets/it-logo.png";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -83,7 +83,7 @@ export default function Auth() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
-            <img src={collegeLogo} alt="วิทยาลัยเทคนิควังน้ำเย็น" className="h-32 w-32 object-contain" />
+            <img src={itLogo} alt="INFORMATION TECHNOLOGY วิทยาลัยเทคนิควังน้ำเย็น" className="h-40 w-40 object-contain" />
           </div>
           <CardTitle className="text-2xl text-center">ระบบบริหารจัดการร้านขายของชำ</CardTitle>
           <CardDescription className="text-center">
