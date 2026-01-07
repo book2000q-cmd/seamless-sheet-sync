@@ -129,7 +129,12 @@ export default function Products() {
       resetForm();
       setDialogOpen(false);
     } catch (error: any) {
-      toast.error(error.message);
+      // ตรวจสอบ error ที่เกิดจากบาร์โค้ดซ้ำ
+      if (error.code === '23505' || error.message?.includes('duplicate key') || error.message?.includes('products_barcode_key')) {
+        toast.error('บาร์โค้ดนี้มีอยู่ในระบบแล้ว กรุณาใช้บาร์โค้ดอื่น');
+      } else {
+        toast.error(error.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+      }
     }
   };
 
