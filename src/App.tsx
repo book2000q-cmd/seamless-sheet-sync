@@ -10,6 +10,7 @@ import POS from "./pages/POS";
 import SalesHistory from "./pages/SalesHistory";
 import Settings from "./pages/Settings";
 import LogoEditor from "./pages/LogoEditor";
+import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/sales-history" element={<SalesHistory />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/logo-editor" element={<LogoEditor />} />
+          <Route path="/users" element={<Users />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
