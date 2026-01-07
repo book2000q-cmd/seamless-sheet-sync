@@ -39,7 +39,7 @@ interface UserWithRole {
 }
 
 const roleLabels: Record<AppRole, string> = {
-  admin: 'ผู้ดูแลระบบ',
+  admin: 'เจ้าของร้าน',
   manager: 'ผู้จัดการ',
   staff: 'พนักงาน',
 };
@@ -241,7 +241,7 @@ export default function Users() {
 
         {!isAdmin && currentUserRole && (
           <p className="text-sm text-muted-foreground text-center">
-            คุณต้องเป็นผู้ดูแลระบบเพื่อจัดการยศของผู้ใช้อื่น
+            คุณต้องเป็นเจ้าของร้านเพื่อจัดการยศของผู้ใช้อื่น
           </p>
         )}
       </div>
@@ -261,7 +261,7 @@ export default function Users() {
                 <SelectItem value="admin">
                   <div className="flex items-center gap-2">
                     <Crown className="h-4 w-4" />
-                    ผู้ดูแลระบบ
+                    เจ้าของร้าน
                   </div>
                 </SelectItem>
                 <SelectItem value="manager">
