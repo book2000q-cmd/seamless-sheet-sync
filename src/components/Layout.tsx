@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   X,
+  Users,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -39,6 +40,7 @@ export default function Layout({ children }: LayoutProps) {
     { path: "/products", icon: Package, label: "จัดการสินค้า" },
     { path: "/pos", icon: ShoppingCart, label: "ขายสินค้า" },
     { path: "/sales-history", icon: History, label: "ประวัติการขาย" },
+    { path: "/users", icon: Users, label: "จัดการผู้ใช้" },
     { path: "/settings", icon: Settings, label: "ตั้งค่า" },
   ];
 
