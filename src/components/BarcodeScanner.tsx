@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Button } from "@/components/ui/button";
-import { Camera, X } from "lucide-react";
+import { Camera, X, RotateCcw, Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface BarcodeScannerProps {
@@ -14,12 +14,16 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const hasScannedRef = useRef(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
 
+  // Reset ทุกอย่างเมื่อเปิด/ปิด scanner
   useEffect(() => {
     if (isOpen) {
       // รีเซ็ตสถานะทุกครั้งที่เปิดหน้าสแกนใหม่
       hasScannedRef.current = false;
-      // เพิ่ม delay เล็กน้อยเพื่อให้ DOM พร้อม และป้องกัน loop เปิด/ปิดกล้อง
+      setLastScannedCode(null);
+      
+      // เพิ่ม delay เล็กน้อยเพื่อให้ DOM พร้อม
       const timer = setTimeout(() => {
         if (!scannerRef.current) {
           startScanning();
@@ -29,10 +33,12 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
       return () => {
         clearTimeout(timer);
       };
+    } else {
+      // เมื่อ dialog ถูกปิด ให้หยุดสแกนและเคลียร์กล้อง
+      stopScanning();
+      hasScannedRef.current = false;
+      setLastScannedCode(null);
     }
-
-    // เมื่อ dialog ถูกปิด ให้หยุดสแกนและเคลียร์กล้อง
-    stopScanning();
   }, [isOpen]);
 
   const startScanning = async () => {
@@ -94,6 +100,7 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
             return;
           }
           hasScannedRef.current = true;
+          setLastScannedCode(text);
 
           console.log("Barcode scanned:", text);
 
@@ -106,8 +113,8 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
               const gainNode = audioCtx.createGain();
 
               oscillator.type = "sine";
-              oscillator.frequency.value = 880; // เสียงสูงเล็กน้อย
-              gainNode.gain.value = 0.1; // เบาๆ ไม่ดังเกินไป
+              oscillator.frequency.value = 880;
+              gainNode.gain.value = 0.1;
 
               oscillator.connect(gainNode);
               gainNode.connect(audioCtx.destination);
@@ -123,9 +130,9 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
           }
 
           toast.success(`สแกนบาร์โค้ดสำเร็จ: ${text}`);
-          onScan(text);
+          
+          // หยุดสแกนแต่ไม่ปิด dialog เพื่อให้ผู้ใช้ยืนยันหรือสแกนใหม่
           stopScanning();
-          onClose();
         },
         (errorMessage) => {
           // Ignore frequent scanning errors (this fires rapidly)
@@ -166,6 +173,21 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
     }
   };
 
+  // ฟังก์ชันสแกนใหม่
+  const handleRescan = () => {
+    hasScannedRef.current = false;
+    setLastScannedCode(null);
+    startScanning();
+  };
+
+  // ฟังก์ชันยืนยันบาร์โค้ด
+  const handleConfirm = () => {
+    if (lastScannedCode) {
+      onScan(lastScannedCode);
+      onClose();
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -192,9 +214,37 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
             id="barcode-scanner"
             className="w-full rounded-lg overflow-hidden bg-black"
           ></div>
-          <p className="text-sm text-muted-foreground text-center mt-4">
-            จ่อบาร์โค้ดเข้ากล้องเพื่อสแกน
-          </p>
+          
+          {/* แสดงผลบาร์โค้ดที่สแกนได้ */}
+          {lastScannedCode && (
+            <div className="mt-4 p-4 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground mb-2">บาร์โค้ดที่สแกนได้:</p>
+              <p className="text-lg font-mono font-bold text-center">{lastScannedCode}</p>
+              <div className="flex gap-2 mt-4">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={handleRescan}
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  สแกนใหม่
+                </Button>
+                <Button 
+                  className="flex-1"
+                  onClick={handleConfirm}
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  ใช้บาร์โค้ดนี้
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {!lastScannedCode && (
+            <p className="text-sm text-muted-foreground text-center mt-4">
+              จ่อบาร์โค้ดเข้ากล้องเพื่อสแกน
+            </p>
+          )}
         </div>
       </div>
     </div>
