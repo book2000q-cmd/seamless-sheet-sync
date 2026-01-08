@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Camera } from "lucide-react";
+import { Plus, Pencil, Trash2, Camera, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import BarcodeScanner from "@/components/BarcodeScanner";
@@ -28,6 +28,7 @@ export default function Products() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showScanner, setShowScanner] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
   const [formData, setFormData] = useState({
     barcode: "",
@@ -181,6 +182,17 @@ export default function Products() {
     });
   };
 
+  // กรองสินค้าตามคำค้นหา
+  const filteredProducts = products.filter((product) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      product.barcode.toLowerCase().includes(query) ||
+      product.name.toLowerCase().includes(query) ||
+      product.category?.toLowerCase().includes(query) ||
+      product.description?.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <Layout>
       <BarcodeScanner 
@@ -307,7 +319,18 @@ export default function Products() {
 
         <Card>
           <CardHeader>
-            <CardTitle>รายการสินค้า</CardTitle>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <CardTitle>รายการสินค้า</CardTitle>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="ค้นหาสินค้า..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -327,14 +350,14 @@ export default function Products() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.length === 0 ? (
+                  {filteredProducts.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center">
-                        ไม่มีข้อมูลสินค้า
+                        {searchQuery ? 'ไม่พบสินค้าที่ตรงกับคำค้นหา' : 'ไม่มีข้อมูลสินค้า'}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    products.map((product) => (
+                    filteredProducts.map((product) => (
                       <TableRow key={product.id}>
                         <TableCell className="font-mono">{product.barcode}</TableCell>
                         <TableCell className="font-medium">{product.name}</TableCell>
