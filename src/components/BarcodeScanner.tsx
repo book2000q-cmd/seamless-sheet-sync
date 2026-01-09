@@ -155,6 +155,8 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
   const handleRescan = () => {
     hasScannedRef.current = false;
     setLastScannedCode(null);
+    setShowManualInput(false); // ปิดช่องพิมพ์เอง
+    setManualBarcode(""); // เคลียร์ค่า
     startScanning();
   };
 
