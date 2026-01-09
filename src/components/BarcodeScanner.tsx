@@ -62,32 +62,25 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
       scannerRef.current = html5QrCode;
 
       const config: any = {
-        fps: 15, // ลด fps เพื่อให้โฟกัสได้ดีขึ้น
-        qrbox: { width: 320, height: 120 }, // กรอบแคบยาวสำหรับบาร์โค้ด
-        aspectRatio: 1.5,
+        fps: 30, // เพิ่ม fps ให้สแกนเร็วขึ้น
+        qrbox: { width: 280, height: 100 }, // กรอบแคบเหมาะกับบาร์โค้ด 1D
+        aspectRatio: 1.333,
         disableFlip: true,
         formatsToSupport: [
           Html5QrcodeSupportedFormats.EAN_13,
           Html5QrcodeSupportedFormats.EAN_8,
           Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.CODE_93,
           Html5QrcodeSupportedFormats.UPC_A,
           Html5QrcodeSupportedFormats.UPC_E,
-          Html5QrcodeSupportedFormats.ITF,
-          Html5QrcodeSupportedFormats.CODABAR,
         ],
         experimentalFeatures: {
           useBarCodeDetectorIfSupported: true,
         },
-        rememberLastUsedCamera: true,
       };
 
-      // ใช้ constraints ที่ขอความละเอียดสูงเพื่อให้อ่านบาร์โค้ดได้ชัด
-      const cameraConfig = {
+      // ใช้ constraints พื้นฐานเพื่อให้กล้องเริ่มเร็ว
+      const cameraConfig: any = {
         facingMode: "environment",
-        width: { min: 640, ideal: 1280, max: 1920 },
-        height: { min: 480, ideal: 720, max: 1080 },
       };
 
       console.log("html5-qrcode config", config);
