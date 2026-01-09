@@ -23,7 +23,7 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
     if (scannerRef.current) {
       try {
         const state = scannerRef.current.getState();
-        if (state === 2) { // SCANNING state
+        if (state === 2) {
           await scannerRef.current.stop();
         }
         scannerRef.current.clear();
@@ -74,15 +74,21 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
         return;
       }
 
+      // รองรับทุกรูปแบบบาร์โค้ด
       const html5QrCode = new Html5Qrcode("barcode-scanner", {
         verbose: false,
         formatsToSupport: [
           Html5QrcodeSupportedFormats.EAN_13,
           Html5QrcodeSupportedFormats.EAN_8,
           Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.CODE_93,
           Html5QrcodeSupportedFormats.UPC_A,
           Html5QrcodeSupportedFormats.UPC_E,
-          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.ITF,
+          Html5QrcodeSupportedFormats.CODABAR,
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.DATA_MATRIX,
         ],
         experimentalFeatures: {
           useBarCodeDetectorIfSupported: true,
@@ -91,16 +97,15 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
       
       scannerRef.current = html5QrCode;
 
-      // ใช้กล้องหลังความละเอียดสูง
       await html5QrCode.start(
         { facingMode: "environment" },
         {
-          fps: 10, // ลด fps เพื่อให้ process แต่ละ frame ได้ดีขึ้น
+          fps: 15,
           qrbox: (viewfinderWidth, viewfinderHeight) => {
-            // กรอบสแกนที่เหมาะสมกับขนาดหน้าจอ
+            // กรอบใหญ่ขึ้นเพื่อรองรับบาร์โค้ดทุกขนาด
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const boxWidth = Math.floor(minEdge * 0.85);
-            const boxHeight = Math.floor(boxWidth * 0.35); // แคบสำหรับบาร์โค้ด 1D
+            const boxWidth = Math.floor(minEdge * 0.9);
+            const boxHeight = Math.floor(minEdge * 0.5);
             return { width: boxWidth, height: boxHeight };
           },
           aspectRatio: 1.0,
@@ -116,9 +121,7 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
           toast.success(`สแกนได้: ${code}`);
           stopScanning();
         },
-        () => {
-          // Ignore scan errors - they fire constantly
-        }
+        () => {}
       );
 
       setIsScanning(true);
@@ -134,7 +137,6 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
     }
   }, [stopScanning, playBeep]);
 
-  // Effect สำหรับเปิด/ปิด scanner
   useEffect(() => {
     if (isOpen) {
       hasScannedRef.current = false;
@@ -152,22 +154,28 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
     }
   }, [isOpen, startScanning, stopScanning]);
 
-  const handleRescan = () => {
+  const handleRescan = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     hasScannedRef.current = false;
     setLastScannedCode(null);
-    setShowManualInput(false); // ปิดช่องพิมพ์เอง
-    setManualBarcode(""); // เคลียร์ค่า
+    setShowManualInput(false);
+    setManualBarcode("");
     startScanning();
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (lastScannedCode) {
       onScan(lastScannedCode);
       onClose();
     }
   };
 
-  const handleManualSubmit = () => {
+  const handleManualSubmit = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     const code = manualBarcode.trim();
     if (code) {
       playBeep();
@@ -178,17 +186,32 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
     }
   };
 
-  const handleClose = () => {
+  const handleClose = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     stopScanning();
     onClose();
+  };
+
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4">
-      <div className="bg-background rounded-lg shadow-xl max-w-lg w-full overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b">
+    <div 
+      className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4"
+      onClick={handleOverlayClick}
+      onTouchStart={(e) => e.stopPropagation()}
+      style={{ touchAction: 'none' }}
+    >
+      <div 
+        className="bg-background rounded-lg shadow-2xl max-w-lg w-full overflow-hidden border border-border"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b bg-background">
           <div className="flex items-center gap-2">
             <Camera className="h-5 w-5" />
             <h3 className="font-semibold">สแกนบาร์โค้ด</h3>
@@ -197,38 +220,47 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowManualInput(!showManualInput)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowManualInput(!showManualInput);
+              }}
+              type="button"
             >
               <Keyboard className="h-4 w-4 mr-1" />
               พิมพ์เอง
             </Button>
-            <Button variant="ghost" size="icon" onClick={handleClose}>
+            <Button variant="ghost" size="icon" onClick={handleClose} type="button">
               <X className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        <div className="p-4 space-y-4">
-          {/* Manual Input */}
+        <div className="p-4 space-y-4 bg-background">
           {showManualInput && (
             <div className="flex gap-2">
               <Input
                 placeholder="กรอกบาร์โค้ด..."
                 value={manualBarcode}
                 onChange={(e) => setManualBarcode(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleManualSubmit();
+                  }
+                }}
                 autoFocus
+                onClick={(e) => e.stopPropagation()}
               />
-              <Button onClick={handleManualSubmit}>ยืนยัน</Button>
+              <Button onClick={handleManualSubmit} type="button">ยืนยัน</Button>
             </div>
           )}
 
-          {/* Camera View */}
-          {!lastScannedCode && (
+          {!lastScannedCode && !showManualInput && (
             <>
               <div
                 id="barcode-scanner"
-                className="w-full aspect-square rounded-lg overflow-hidden bg-black"
+                className="w-full aspect-[4/3] rounded-lg overflow-hidden bg-black"
               />
               <p className="text-sm text-muted-foreground text-center">
                 จัดบาร์โค้ดให้อยู่ในกรอบ แล้วถือนิ่งๆ
@@ -236,17 +268,25 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
             </>
           )}
 
-          {/* Scanned Result */}
           {lastScannedCode && (
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground mb-2">บาร์โค้ดที่สแกนได้:</p>
-              <p className="text-xl font-mono font-bold text-center py-2">{lastScannedCode}</p>
+              <p className="text-xl font-mono font-bold text-center py-2 break-all">{lastScannedCode}</p>
               <div className="flex gap-2 mt-4">
-                <Button variant="outline" className="flex-1" onClick={handleRescan}>
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={handleRescan}
+                  type="button"
+                >
                   <RotateCcw className="mr-2 h-4 w-4" />
                   สแกนใหม่
                 </Button>
-                <Button className="flex-1" onClick={handleConfirm}>
+                <Button 
+                  className="flex-1" 
+                  onClick={handleConfirm}
+                  type="button"
+                >
                   <Check className="mr-2 h-4 w-4" />
                   ใช้บาร์โค้ดนี้
                 </Button>
