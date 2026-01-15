@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Camera, Trash2, ShoppingCart } from "lucide-react";
+import { Camera, Trash2, ShoppingCart, ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import BarcodeScanner from "@/components/BarcodeScanner";
@@ -13,9 +13,11 @@ interface CartItem {
   product_id: string;
   barcode: string;
   name: string;
+  brand: string | null;
   price: number;
   quantity: number;
   subtotal: number;
+  image_url: string | null;
 }
 
 export default function POS() {
@@ -68,13 +70,16 @@ export default function POS() {
           product_id: product.id,
           barcode: product.barcode,
           name: product.name,
+          brand: product.brand,
           price: product.price,
           quantity: 1,
           subtotal: product.price,
+          image_url: product.image_url,
         }]);
       }
 
-      toast.success(`เพิ่ม ${product.name} ลงในตะกร้า`);
+      const displayName = product.brand ? `${product.name} (${product.brand})` : product.name;
+      toast.success(`เพิ่ม ${displayName} ลงในตะกร้า`);
       setBarcode("");
     } catch (error: any) {
       toast.error('เกิดข้อผิดพลาด');
@@ -241,6 +246,7 @@ export default function POS() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[60px]">รูป</TableHead>
                       <TableHead>สินค้า</TableHead>
                       <TableHead className="text-right">ราคา</TableHead>
                       <TableHead className="text-center">จำนวน</TableHead>
@@ -251,7 +257,7 @@ export default function POS() {
                   <TableBody>
                   {cart.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center text-muted-foreground">
                         ตะกร้าสินค้าว่างเปล่า
                       </TableCell>
                     </TableRow>
@@ -259,9 +265,27 @@ export default function POS() {
                     cart.map((item) => (
                       <TableRow key={item.product_id}>
                         <TableCell>
+                          <div className="w-10 h-10 rounded-md overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
+                            {item.image_url ? (
+                              <img 
+                                src={item.image_url} 
+                                alt={item.name} 
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
                           <div>
                             <p className="font-medium">{item.name}</p>
-                            <p className="text-xs text-muted-foreground">{item.barcode}</p>
+                            {item.brand && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-primary/10 text-primary mt-0.5">
+                                {item.brand}
+                              </span>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-0.5">{item.barcode}</p>
                           </div>
                         </TableCell>
                         <TableCell className="text-right">฿{item.price.toFixed(2)}</TableCell>

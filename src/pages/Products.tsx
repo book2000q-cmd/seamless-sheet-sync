@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Camera, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Camera, Search, Upload, ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import BarcodeScanner from "@/components/BarcodeScanner";
@@ -15,11 +15,13 @@ interface Product {
   id: string;
   barcode: string;
   name: string;
+  brand: string | null;
   description: string | null;
   price: number;
   stock_quantity: number;
   min_stock_level: number;
   category: string | null;
+  image_url: string | null;
 }
 
 export default function Products() {
@@ -29,15 +31,20 @@ export default function Products() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showScanner, setShowScanner] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     barcode: "",
     name: "",
+    brand: "",
     description: "",
     price: "",
     stock_quantity: "",
     min_stock_level: "10",
     category: "",
+    image_url: "",
   });
 
   useEffect(() => {
@@ -75,6 +82,57 @@ export default function Products() {
     }
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('ขนาดไฟล์ต้องไม่เกิน 5MB');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setFormData({ ...formData, image_url: publicUrl });
+      toast.success('อัปโหลดรูปภาพสำเร็จ');
+    } catch (error: any) {
+      toast.error('ไม่สามารถอัปโหลดรูปภาพได้');
+      console.error(error);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -87,11 +145,13 @@ export default function Products() {
           .update({
             barcode: formData.barcode,
             name: formData.name,
+            brand: formData.brand || null,
             description: formData.description,
             price: parseFloat(formData.price),
             stock_quantity: parseInt(formData.stock_quantity),
             min_stock_level: parseInt(formData.min_stock_level),
             category: formData.category,
+            image_url: formData.image_url || null,
           })
           .eq('id', editingProduct.id);
 
@@ -103,11 +163,13 @@ export default function Products() {
           .insert({
             barcode: formData.barcode,
             name: formData.name,
+            brand: formData.brand || null,
             description: formData.description,
             price: parseFloat(formData.price),
             stock_quantity: parseInt(formData.stock_quantity),
             min_stock_level: parseInt(formData.min_stock_level),
             category: formData.category,
+            image_url: formData.image_url || null,
           });
 
         if (productError) throw productError;
@@ -121,7 +183,7 @@ export default function Products() {
             category: 'สินค้า',
             amount: totalCost,
             date: new Date().toISOString().split('T')[0],
-            description: `นำเข้าสินค้า: ${formData.name} (${formData.stock_quantity} ชิ้น)`,
+            description: `นำเข้าสินค้า: ${formData.name}${formData.brand ? ` (${formData.brand})` : ''} (${formData.stock_quantity} ชิ้น)`,
           });
 
         toast.success('เพิ่มสินค้าและบันทึกรายจ่ายสำเร็จ');
@@ -160,12 +222,15 @@ export default function Products() {
     setFormData({
       barcode: product.barcode,
       name: product.name,
+      brand: product.brand || "",
       description: product.description || "",
       price: product.price.toString(),
       stock_quantity: product.stock_quantity.toString(),
       min_stock_level: product.min_stock_level.toString(),
       category: product.category || "",
+      image_url: product.image_url || "",
     });
+    setImagePreview(product.image_url || null);
     setDialogOpen(true);
   };
 
@@ -174,12 +239,15 @@ export default function Products() {
     setFormData({
       barcode: "",
       name: "",
+      brand: "",
       description: "",
       price: "",
       stock_quantity: "",
       min_stock_level: "10",
       category: "",
+      image_url: "",
     });
+    setImagePreview(null);
   };
 
   // กรองสินค้าตามคำค้นหา
@@ -188,6 +256,7 @@ export default function Products() {
     return (
       product.barcode.toLowerCase().includes(query) ||
       product.name.toLowerCase().includes(query) ||
+      product.brand?.toLowerCase().includes(query) ||
       product.category?.toLowerCase().includes(query) ||
       product.description?.toLowerCase().includes(query)
     );
@@ -217,7 +286,7 @@ export default function Products() {
                 เพิ่มสินค้า
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingProduct ? 'แก้ไขสินค้า' : 'เพิ่มสินค้าใหม่'}</DialogTitle>
                 <DialogDescription>
@@ -225,6 +294,47 @@ export default function Products() {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Image Upload Section */}
+                <div className="space-y-2">
+                  <Label>รูปภาพสินค้า</Label>
+                  <div className="flex items-center gap-4">
+                    <div 
+                      className="w-24 h-24 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center overflow-hidden bg-muted/30 cursor-pointer hover:border-primary/50 transition-colors"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {imagePreview || formData.image_url ? (
+                        <img 
+                          src={imagePreview || formData.image_url} 
+                          alt="Preview" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        {uploadingImage ? 'กำลังอัปโหลด...' : 'เลือกรูปภาพ'}
+                      </Button>
+                      <p className="text-xs text-muted-foreground">รองรับ JPG, PNG ขนาดไม่เกิน 5MB</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="barcode">บาร์โค้ด *</Label>
                   <div className="flex gap-2">
@@ -245,6 +355,7 @@ export default function Products() {
                     </Button>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">ชื่อสินค้า *</Label>
@@ -256,6 +367,18 @@ export default function Products() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="brand">ยี่ห้อสินค้า</Label>
+                    <Input
+                      id="brand"
+                      value={formData.brand}
+                      onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                      placeholder="เช่น Samsung, Apple, LG"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label htmlFor="category">หมวดหมู่</Label>
                     <Input
                       id="category"
@@ -263,15 +386,16 @@ export default function Products() {
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">รายละเอียด</Label>
+                    <Input
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">รายละเอียด</Label>
-                  <Input
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </div>
+
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="price">ราคา (บาท) *</Label>
@@ -305,7 +429,7 @@ export default function Products() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" className="flex-1">
+                  <Button type="submit" className="flex-1" disabled={uploadingImage}>
                     {editingProduct ? 'บันทึกการแก้ไข' : 'เพิ่มสินค้า'}
                   </Button>
                   <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
@@ -340,27 +464,48 @@ export default function Products() {
                 <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[80px]">รูปภาพ</TableHead>
                     <TableHead>บาร์โค้ด</TableHead>
                     <TableHead>ชื่อสินค้า</TableHead>
+                    <TableHead>ยี่ห้อ</TableHead>
                     <TableHead>หมวดหมู่</TableHead>
                     <TableHead className="text-right">ราคา</TableHead>
                     <TableHead className="text-right">คงเหลือ</TableHead>
-                    <TableHead className="text-right">สต็อกขั้นต่ำ</TableHead>
                     <TableHead className="text-right">จัดการ</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredProducts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center">
+                      <TableCell colSpan={8} className="text-center">
                         {searchQuery ? 'ไม่พบสินค้าที่ตรงกับคำค้นหา' : 'ไม่มีข้อมูลสินค้า'}
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredProducts.map((product) => (
                       <TableRow key={product.id}>
+                        <TableCell>
+                          <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex items-center justify-center">
+                            {product.image_url ? (
+                              <img 
+                                src={product.image_url} 
+                                alt={product.name} 
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="font-mono">{product.barcode}</TableCell>
                         <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell>
+                          {product.brand ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
+                              {product.brand}
+                            </span>
+                          ) : '-'}
+                        </TableCell>
                         <TableCell>{product.category || '-'}</TableCell>
                         <TableCell className="text-right">฿{product.price.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
@@ -368,7 +513,6 @@ export default function Products() {
                             {product.stock_quantity}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right">{product.min_stock_level}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button size="sm" variant="ghost" onClick={() => handleEdit(product)}>
