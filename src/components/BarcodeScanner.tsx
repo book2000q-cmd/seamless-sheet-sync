@@ -185,6 +185,12 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
             playBeep();
             vibrate();
             toast.success(`สแกนสำเร็จ: ${code}`);
+            
+            // CRITICAL: Blur any focused input to hide keyboard on mobile
+            if (document.activeElement instanceof HTMLElement) {
+              document.activeElement.blur();
+            }
+            
             stopScanning();
           }
         },
@@ -279,6 +285,12 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
   const handleRescan = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Blur any focused element first to prevent keyboard from showing
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    
     hasScannedRef.current = false;
     detectionCountRef.current = 0;
     lastDetectedCodeRef.current = null;
@@ -293,6 +305,12 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
   const handleConfirm = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Blur any focused element to hide keyboard
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    
     if (lastScannedCode) {
       onScan(lastScannedCode);
       onClose();
@@ -530,9 +548,16 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
         </div>
       )}
 
-      {/* Success Result */}
+      {/* Success Result - Confirm Mode (No Input Fields!) */}
       {lastScannedCode && (
-        <div className="flex-1 flex items-center justify-center p-6 bg-gradient-to-b from-black to-gray-900">
+        <div 
+          className="flex-1 flex items-center justify-center p-6 bg-gradient-to-b from-black to-gray-900"
+          onClick={(e) => {
+            // Prevent any focus events
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
           <div className="w-full max-w-md">
             {/* Success Icon with animation */}
             <div className="flex justify-center mb-6">
@@ -541,19 +566,26 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
               </div>
             </div>
 
-            {/* Result Card */}
+            {/* Result Card - READ ONLY, NO INPUT FIELD */}
             <div className="bg-white rounded-2xl p-6 shadow-2xl">
               <p className="text-gray-500 text-sm mb-2 text-center">บาร์โค้ดที่สแกนได้</p>
-              <p className="text-2xl font-mono font-bold text-center text-gray-900 py-4 break-all tracking-wider bg-gray-50 rounded-lg">
-                {lastScannedCode}
-              </p>
               
+              {/* Read-only barcode display - NOT an input to prevent keyboard */}
+              <div 
+                className="text-2xl font-mono font-bold text-center text-gray-900 py-4 break-all tracking-wider bg-gray-50 rounded-lg select-none"
+                style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+              >
+                {lastScannedCode}
+              </div>
+              
+              {/* Action Buttons - Large and Easy to Tap */}
               <div className="flex gap-3 mt-6">
                 <Button 
                   variant="outline" 
                   className="flex-1 h-14 text-base border-2" 
                   onClick={handleRescan}
                   type="button"
+                  tabIndex={-1}
                 >
                   <RotateCcw className="mr-2 h-5 w-5" />
                   สแกนใหม่
@@ -562,6 +594,7 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
                   className="flex-1 h-14 text-base bg-green-600 hover:bg-green-700 shadow-lg" 
                   onClick={handleConfirm}
                   type="button"
+                  tabIndex={-1}
                 >
                   <Check className="mr-2 h-5 w-5" />
                   ใช้บาร์โค้ดนี้
