@@ -261,30 +261,54 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
     }
   }, [stopScanning, playBeep, vibrate]) as any;
 
+  // Helper function to aggressively hide keyboard
+  const forceHideKeyboard = useCallback(() => {
+    // Blur active element
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    // Blur all inputs in the entire document
+    const inputs = document.querySelectorAll('input, textarea, [contenteditable="true"]');
+    inputs.forEach(input => {
+      if (input instanceof HTMLElement) {
+        input.blur();
+      }
+    });
+    // Extra: Set readonly temporarily on all inputs to prevent keyboard
+    inputs.forEach(input => {
+      if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
+        const wasReadonly = input.readOnly;
+        input.readOnly = true;
+        setTimeout(() => {
+          input.readOnly = wasReadonly;
+        }, 300);
+      }
+    });
+  }, []);
+
+  // CRITICAL: Force hide keyboard when scanner opens
+  useEffect(() => {
+    if (isOpen) {
+      // Immediate blur
+      forceHideKeyboard();
+      // Multiple delayed attempts for iOS
+      setTimeout(forceHideKeyboard, 50);
+      setTimeout(forceHideKeyboard, 150);
+      setTimeout(forceHideKeyboard, 300);
+    }
+  }, [isOpen, forceHideKeyboard]);
+
   // CRITICAL: Force hide keyboard when barcode is successfully scanned
   useEffect(() => {
     if (lastScannedCode) {
       // Multiple blur attempts to ensure keyboard is hidden on all devices
-      const blurAll = () => {
-        if (document.activeElement instanceof HTMLElement) {
-          document.activeElement.blur();
-        }
-        // Also blur any inputs that might be focused
-        const inputs = document.querySelectorAll('input, textarea');
-        inputs.forEach(input => {
-          if (input instanceof HTMLElement) {
-            input.blur();
-          }
-        });
-      };
-      
-      // Immediate blur
-      blurAll();
+      forceHideKeyboard();
       // Delayed blur for iOS which sometimes has timing issues
-      setTimeout(blurAll, 50);
-      setTimeout(blurAll, 150);
+      setTimeout(forceHideKeyboard, 50);
+      setTimeout(forceHideKeyboard, 150);
+      setTimeout(forceHideKeyboard, 300);
     }
-  }, [lastScannedCode]);
+  }, [lastScannedCode, forceHideKeyboard]);
 
   useEffect(() => {
     if (isOpen) {
