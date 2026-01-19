@@ -26,6 +26,7 @@ interface SaleItem {
   products: {
     name: string;
     barcode: string;
+    brand: string | null;
   };
 }
 
@@ -45,7 +46,7 @@ export default function SalesHistory() {
           *,
           items:sales_items(
             *,
-            products(name, barcode)
+            products(name, barcode, brand)
           )
         `)
         .order('created_at', { ascending: false })
@@ -173,7 +174,14 @@ export default function SalesHistory() {
                         <TableRow key={item.id}>
                           <TableCell>
                             <div>
-                              <p className="font-medium">{item.products.name}</p>
+                              <p className="font-medium">
+                                {item.products.name}
+                                {item.products.brand && (
+                                  <span className="ml-2 text-xs font-normal text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                                    {item.products.brand}
+                                  </span>
+                                )}
+                              </p>
                               <p className="text-xs text-muted-foreground">
                                 {item.products.barcode}
                               </p>
