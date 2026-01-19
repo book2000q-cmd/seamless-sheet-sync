@@ -63,7 +63,9 @@ export default function Products() {
   }, []);
 
   const handleScan = (scannedBarcode: string) => {
-    setFormData({ ...formData, barcode: scannedBarcode });
+    setFormData(prev => ({ ...prev, barcode: scannedBarcode }));
+    // Re-open dialog after scan
+    setDialogOpen(true);
   };
 
   const fetchProducts = async () => {
@@ -348,7 +350,18 @@ export default function Products() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setShowScanner(true)}
+                      onClick={() => {
+                        // Close dialog first to prevent keyboard from staying open
+                        setDialogOpen(false);
+                        // Blur all inputs
+                        if (document.activeElement instanceof HTMLElement) {
+                          document.activeElement.blur();
+                        }
+                        // Small delay then open scanner
+                        setTimeout(() => {
+                          setShowScanner(true);
+                        }, 100);
+                      }}
                       title="สแกนด้วยกล้อง"
                     >
                       <Camera className="h-4 w-4" />
