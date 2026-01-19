@@ -261,6 +261,31 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
     }
   }, [stopScanning, playBeep, vibrate]) as any;
 
+  // CRITICAL: Force hide keyboard when barcode is successfully scanned
+  useEffect(() => {
+    if (lastScannedCode) {
+      // Multiple blur attempts to ensure keyboard is hidden on all devices
+      const blurAll = () => {
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        // Also blur any inputs that might be focused
+        const inputs = document.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+          if (input instanceof HTMLElement) {
+            input.blur();
+          }
+        });
+      };
+      
+      // Immediate blur
+      blurAll();
+      // Delayed blur for iOS which sometimes has timing issues
+      setTimeout(blurAll, 50);
+      setTimeout(blurAll, 150);
+    }
+  }, [lastScannedCode]);
+
   useEffect(() => {
     if (isOpen) {
       hasScannedRef.current = false;
@@ -553,12 +578,35 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
         <div 
           className="flex-1 flex items-center justify-center p-6 bg-gradient-to-b from-black to-gray-900"
           onClick={(e) => {
-            // Prevent any focus events
+            // Prevent any focus events and force blur
             e.preventDefault();
             e.stopPropagation();
+            if (document.activeElement instanceof HTMLElement) {
+              document.activeElement.blur();
+            }
+          }}
+          onTouchStart={(e) => {
+            // Prevent keyboard on touch devices
+            e.stopPropagation();
+            if (document.activeElement instanceof HTMLElement) {
+              document.activeElement.blur();
+            }
+          }}
+          onFocus={(e) => {
+            // Prevent any element from getting focus in confirm mode
+            e.preventDefault();
+            if (e.target instanceof HTMLElement) {
+              e.target.blur();
+            }
+          }}
+          ref={(el) => {
+            // Force blur when this element mounts
+            if (el && document.activeElement instanceof HTMLElement) {
+              document.activeElement.blur();
+            }
           }}
         >
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-md" onFocus={(e) => e.preventDefault()}>
             {/* Success Icon with animation */}
             <div className="flex justify-center mb-6">
               <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center animate-bounce-once">
@@ -567,38 +615,46 @@ export default function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScann
             </div>
 
             {/* Result Card - READ ONLY, NO INPUT FIELD */}
-            <div className="bg-white rounded-2xl p-6 shadow-2xl">
-              <p className="text-gray-500 text-sm mb-2 text-center">บาร์โค้ดที่สแกนได้</p>
+            <div 
+              className="bg-white rounded-2xl p-6 shadow-2xl"
+              onTouchStart={(e) => e.stopPropagation()}
+            >
+              <p className="text-gray-500 text-sm mb-2 text-center select-none">บาร์โค้ดที่สแกนได้</p>
               
               {/* Read-only barcode display - NOT an input to prevent keyboard */}
               <div 
-                className="text-2xl font-mono font-bold text-center text-gray-900 py-4 break-all tracking-wider bg-gray-50 rounded-lg select-none"
-                style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+                className="text-2xl font-mono font-bold text-center text-gray-900 py-4 break-all tracking-wider bg-gray-50 rounded-lg select-none pointer-events-none"
+                style={{ userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
               >
                 {lastScannedCode}
               </div>
               
               {/* Action Buttons - Large and Easy to Tap */}
               <div className="flex gap-3 mt-6">
-                <Button 
-                  variant="outline" 
-                  className="flex-1 h-14 text-base border-2" 
+                <button 
+                  className="flex-1 h-14 text-base border-2 border-gray-300 bg-white rounded-lg flex items-center justify-center gap-2 font-medium hover:bg-gray-50 active:bg-gray-100 touch-manipulation"
                   onClick={handleRescan}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    handleRescan(e as any);
+                  }}
                   type="button"
-                  tabIndex={-1}
                 >
-                  <RotateCcw className="mr-2 h-5 w-5" />
+                  <RotateCcw className="h-5 w-5" />
                   สแกนใหม่
-                </Button>
-                <Button 
-                  className="flex-1 h-14 text-base bg-green-600 hover:bg-green-700 shadow-lg" 
+                </button>
+                <button 
+                  className="flex-1 h-14 text-base bg-green-600 hover:bg-green-700 active:bg-green-800 text-white rounded-lg shadow-lg flex items-center justify-center gap-2 font-medium touch-manipulation"
                   onClick={handleConfirm}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    handleConfirm(e as any);
+                  }}
                   type="button"
-                  tabIndex={-1}
                 >
-                  <Check className="mr-2 h-5 w-5" />
+                  <Check className="h-5 w-5" />
                   ใช้บาร์โค้ดนี้
-                </Button>
+                </button>
               </div>
             </div>
           </div>
