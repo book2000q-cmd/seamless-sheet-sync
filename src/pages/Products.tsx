@@ -204,37 +204,22 @@ export default function Products() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่?')) return;
+    if (!confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่? (รวมถึงประวัติการขายและการเคลื่อนไหวสต็อกที่เกี่ยวข้อง)')) return;
 
     try {
-      // ตรวจสอบว่าสินค้ามีประวัติการขายหรือไม่
-      const { data: salesItems, error: checkError } = await supabase
+      // ลบข้อมูลที่เกี่ยวข้องใน sales_items ก่อน
+      await supabase
         .from('sales_items')
-        .select('id')
-        .eq('product_id', id)
-        .limit(1);
+        .delete()
+        .eq('product_id', id);
 
-      if (checkError) throw checkError;
-
-      if (salesItems && salesItems.length > 0) {
-        toast.error('ไม่สามารถลบสินค้านี้ได้ เนื่องจากมีประวัติการขายอยู่ในระบบ');
-        return;
-      }
-
-      // ตรวจสอบว่าสินค้ามีการเคลื่อนไหว stock หรือไม่
-      const { data: stockMovements, error: stockCheckError } = await supabase
+      // ลบข้อมูลที่เกี่ยวข้องใน stock_movements
+      await supabase
         .from('stock_movements')
-        .select('id')
-        .eq('product_id', id)
-        .limit(1);
+        .delete()
+        .eq('product_id', id);
 
-      if (stockCheckError) throw stockCheckError;
-
-      if (stockMovements && stockMovements.length > 0) {
-        toast.error('ไม่สามารถลบสินค้านี้ได้ เนื่องจากมีประวัติการเคลื่อนไหวสต็อกอยู่ในระบบ');
-        return;
-      }
-
+      // จากนั้นลบสินค้า
       const { error } = await supabase
         .from('products')
         .delete()
@@ -243,12 +228,7 @@ export default function Products() {
       if (error) throw error;
       toast.success('ลบสินค้าสำเร็จ');
     } catch (error: any) {
-      // ตรวจสอบ foreign key constraint error
-      if (error.code === '23503' || error.message?.includes('foreign key constraint')) {
-        toast.error('ไม่สามารถลบสินค้านี้ได้ เนื่องจากมีข้อมูลที่เกี่ยวข้องอยู่ในระบบ');
-      } else {
-        toast.error('เกิดข้อผิดพลาดในการลบสินค้า');
-      }
+      toast.error('เกิดข้อผิดพลาดในการลบสินค้า');
     }
   };
 
