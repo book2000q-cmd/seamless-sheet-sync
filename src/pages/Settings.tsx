@@ -10,7 +10,7 @@ import { RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Settings() {
-  const [webhookUrl, setWebhookUrl] = useState("https://project221.app.n8n.cloud/webhook/project");
+  const [webhookUrl, setWebhookUrl] = useState("https://project223.app.n8n.cloud/webhook/project");
   const [syncing, setSyncing] = useState(false);
 
   const handleSync = async () => {
