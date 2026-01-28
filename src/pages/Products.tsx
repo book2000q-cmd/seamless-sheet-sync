@@ -6,10 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Camera, Search, Upload, ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Camera, Search, Upload, ImageIcon, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import BarcodeScanner from "@/components/BarcodeScanner";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface Product {
   id: string;
@@ -33,6 +35,7 @@ export default function Products() {
   const [searchQuery, setSearchQuery] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const { hasRole, loading: roleLoading } = useUserRole();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
@@ -292,11 +295,12 @@ export default function Products() {
             <p className="text-sm sm:text-base text-muted-foreground">เพิ่ม แก้ไข และลบสินค้าในระบบ</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={(open) => {
+            if (!hasRole) return;
             setDialogOpen(open);
             if (!open) resetForm();
           }}>
             <DialogTrigger asChild>
-              <Button>
+              <Button disabled={!hasRole}>
                 <Plus className="mr-2 h-4 w-4" />
                 เพิ่มสินค้า
               </Button>
@@ -467,6 +471,16 @@ export default function Products() {
           </Dialog>
         </div>
 
+        {!roleLoading && !hasRole && (
+          <Alert variant="destructive">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertTitle>ไม่มีสิทธิ์ใช้งาน</AlertTitle>
+            <AlertDescription>
+              คุณยังไม่ได้รับมอบหมายยศในระบบ กรุณาติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์ในการจัดการสินค้า
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Card>
           <CardHeader>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -541,10 +555,10 @@ export default function Products() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button size="sm" variant="ghost" onClick={() => handleEdit(product)}>
+                            <Button size="sm" variant="ghost" onClick={() => handleEdit(product)} disabled={!hasRole}>
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={() => handleDelete(product.id)}>
+                            <Button size="sm" variant="ghost" onClick={() => handleDelete(product.id)} disabled={!hasRole}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
