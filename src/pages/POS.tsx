@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Camera, Trash2, ShoppingCart, ImageIcon } from "lucide-react";
+import { Camera, Trash2, ShoppingCart, ImageIcon, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import BarcodeScanner from "@/components/BarcodeScanner";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface CartItem {
   product_id: string;
@@ -25,6 +27,7 @@ export default function POS() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const { hasRole, loading: roleLoading } = useUserRole();
 
   const handleScan = (scannedBarcode: string) => {
     setBarcode(scannedBarcode);
@@ -211,6 +214,16 @@ export default function POS() {
           <p className="text-sm sm:text-base text-muted-foreground">สแกนบาร์โค้ดเพื่อเพิ่มสินค้าในตะกร้า</p>
         </div>
 
+        {!roleLoading && !hasRole && (
+          <Alert variant="destructive">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertTitle>ไม่มีสิทธิ์ใช้งาน</AlertTitle>
+            <AlertDescription>
+              คุณยังไม่ได้รับมอบหมายยศในระบบ กรุณาติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์ในการขายสินค้า
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Product Scanner */}
           <Card className="lg:col-span-2">
@@ -224,20 +237,21 @@ export default function POS() {
                   onChange={(e) => setBarcode(e.target.value)}
                   placeholder="กรอกบาร์โค้ดหรือสแกนด้วยกล้อง"
                   onKeyPress={(e) => {
-                    if (e.key === 'Enter' && barcode) {
+                    if (e.key === 'Enter' && barcode && hasRole) {
                       addToCart();
                     }
                   }}
-                  disabled={loading}
+                  disabled={loading || !hasRole}
                 />
                 <Button
                   variant="outline"
                   onClick={() => setShowScanner(true)}
                   title="สแกนด้วยกล้อง"
+                  disabled={!hasRole}
                 >
                   <Camera className="h-4 w-4" />
                 </Button>
-                <Button onClick={addToCart} disabled={loading || !barcode}>
+                <Button onClick={addToCart} disabled={loading || !barcode || !hasRole}>
                   เพิ่ม
                 </Button>
               </div>
@@ -358,7 +372,7 @@ export default function POS() {
                 className="w-full"
                 size="lg"
                 onClick={handleCheckout}
-                disabled={loading || cart.length === 0}
+                disabled={loading || cart.length === 0 || !hasRole}
               >
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 ชำระเงิน
